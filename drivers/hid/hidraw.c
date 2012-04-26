@@ -89,11 +89,13 @@ static ssize_t hidraw_read(struct file *file, char __user *buffer, size_t count,
 		len = list->buffer[list->tail].len > count ?
 			count : list->buffer[list->tail].len;
 
-		if (copy_to_user(buffer, list->buffer[list->tail].value, len)) {
-			ret = -EFAULT;
-			goto out;
+		if (list->buffer[list->tail].value) {
+			if (copy_to_user(buffer, list->buffer[list->tail].value, len)) {
+				ret = -EFAULT;
+				goto out;
+			}
+			ret = len;
 		}
-		ret = len;
 
 		kfree(list->buffer[list->tail].value);
 		list->tail = (list->tail + 1) & (HIDRAW_BUFFER_SIZE - 1);
@@ -496,24 +498,24 @@ static const struct file_operations hidraw_ops = {
 	.llseek =	noop_llseek,
 };
 
-void hidraw_report_event(struct hid_device *hid, u8 *data, int len)
+int hidraw_report_event(struct hid_device *hid, u8 *data, int len)
 {
 	struct hidraw *dev = hid->hidraw;
 	struct hidraw_list *list;
+	int ret = 0;
 
 	list_for_each_entry(list, &dev->list, node) {
-#ifdef CONFIG_HID_SONY_PS3_CTRL_BT
-		if (list < (struct hidraw_list *)PAGE_OFFSET
-				|| !(list->node.next))
+		if (!(list->buffer[list->head].value = kmemdup(data, len, GFP_ATOMIC))) {
+			ret = -ENOMEM;
 			break;
-#endif
-		list->buffer[list->head].value = kmemdup(data, len, GFP_ATOMIC);
+		}
 		list->buffer[list->head].len = len;
 		list->head = (list->head + 1) & (HIDRAW_BUFFER_SIZE - 1);
 		kill_fasync(&list->fasync, SIGIO, POLL_IN);
 	}
 
 	wake_up_interruptible(&dev->wait);
+	return ret;
 }
 EXPORT_SYMBOL_GPL(hidraw_report_event);
 
