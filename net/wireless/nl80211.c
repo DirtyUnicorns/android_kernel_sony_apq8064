@@ -5479,6 +5479,7 @@ void __cfg80211_send_event_skb(struct sk_buff *skb, gfp_t gfp)
 	else
 		genlmsg_multicast_netns(wiphy_net(&rdev->wiphy), skb, 0,
 			nl80211_testmode_mcgrp.id, gfp);
+
 }
 EXPORT_SYMBOL(__cfg80211_send_event_skb);
 #endif
@@ -8303,7 +8304,7 @@ void nl80211_send_mgmt_tx_status(struct cfg80211_registered_device *rdev,
 
 	genlmsg_end(msg, hdr);
 
-	genlmsg_multicast(msg, 0, nl80211_mlme_mcgrp.id, gfp);
+        genlmsg_multicast(msg, 0, nl80211_mlme_mcgrp.id, gfp);
 	return;
 
  nla_put_failure:
