@@ -152,4 +152,6 @@ source "drivers/coresight/Kconfig"
 
 source "drivers/backoff/Kconfig"
 
+source "drivers/sensors/Kconfig"
+
 endmenu
